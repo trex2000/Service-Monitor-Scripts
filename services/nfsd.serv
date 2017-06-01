@@ -1,0 +1,5 @@
+#!/bin/bash
+#restart nfsd
+systemctl stop nfs-kernel-server
+sleep 5
+systemctl start nfs-kernel-server

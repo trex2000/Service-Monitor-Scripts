@@ -1,0 +1,10 @@
+#!/bin/sh
+#set uuid of DLNA server here
+SRV_UUID=7256ea4b-6157-426f-935a-a4620e8791e9
+#scan for DLNA server
+if gssdp-discover -t uuid:$SRV_UUID -n 3 --timeout=3 | grep "resource available" ; then
+   echo "Meditomb is running"
+else
+   echo "Mediatomb not running. Trying to restart it..."
+   systemctl restart mediatomb    
+fi

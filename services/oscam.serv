@@ -1,0 +1,26 @@
+#!/bin/bash
+#restart oscam
+echo Killing oscam + pcsd
+systemctl stop oscam
+sleep 5
+plist=$(pidof -o %PPID oscam)
+for p in $plist
+do
+  echo "Killing $p..."
+  kill -9  $p
+done
+systemctl stop pcscd
+sleep 2
+plist=$(pidof -o %PPID pcscd)
+for p in $plist
+do
+  echo "Killing $p..."
+  kill  -9  $p
+done
+echo "Resetting Omnikey Reader"
+python omnikeyReset.py OmniKey
+sleep 5
+echo "Starting oscam + pcscd"
+systemctl start pcscd
+sleep 5
+systemctl start oscam

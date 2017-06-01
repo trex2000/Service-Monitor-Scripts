@@ -1,0 +1,9 @@
+#!/bin/sh
+filename="/var/run/spamass/spamd.sock"
+if [ -S "$filename" ]
+then
+    echo "Spamd running"
+else
+    echo "Spamd not running"
+    systemctl restart spamassassin.service
+fi

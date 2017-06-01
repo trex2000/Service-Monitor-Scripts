@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#restart oscam
+systemctl stop oscam
+sleep 5
+systemctl stop pcscd
+sleep 1
+pkill -9 /usr/local/bin/oscam
+pkill -9 pcscd
+sleep 2
+systemctl start pcscd
+sleep 1
+systemctl start oscam
