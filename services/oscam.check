@@ -5,15 +5,16 @@ USER="user"
 PW="password"
 IP="127.0.0.1"
 PORT="16000"
-STR="200 OK"
+STR="1843" #replace this caid with your CAID 
+READER_LABEL="Astra_HD_02_pcsc" #replace with reader label
 #
 echo "Trying to connect"
-curl --connect-timeout 5 --max-time 10 -s -v --silent  --digest -o  -u $USER:$PW "http://$USER:$PW@$IP:$PORT/oscamapi.html?part=status"  2>&1  | grep "$STR"  >  $FILENAME
+curl --connect-timeout 5 --max-time 10 -s -v --silent  --digest -o  -u $USER:$PW "http://$USER:$PW@$IP:$PORT/entitlements.html?label$READER_LABEL&hideexpired=0"  2>&1  | grep  "$STR"  >  $FILENAME
 if [ -s $FILENAME ]; then
-echo "Oscam Running"
+echo "Oscam Running and card is fine"
 else
-logger -s  "Oscam not running. Trying to restart"
-./oscam.serv
+logger -s  "Oscam not running or HD02 card is not visible.  Trying to restart"
+/var/bin/ServiceCheck/services/oscam.serv
 fi
 rm -f $FILENAME
 exit 0
