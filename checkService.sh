@@ -34,6 +34,12 @@ function CheckIfRunning {
     fi
 }  
 
+if !(systemctl -q is-active multi-user.target)
+    then
+    exit 1
+fi
+#continue only if multi-user target has been reached to prevent restarting services too early/late during boot/shutdown
+
 cd $FULLPATH
 for filename in $FILEPATH
 do
