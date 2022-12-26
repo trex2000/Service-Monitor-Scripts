@@ -1,21 +1,68 @@
-#!/bin/sh
-#
+#!/bin/bash
+
 FILENAME="/tmp/_oscam_check"
-USER="username"
+FILE_OSCAM_RESTART_ATTEMPTED="/tmp/oscam_restart_attempted.txt"
+USER="user"
 PW="password"
 IP="127.0.0.1"
 PORT="16000"
-READER_LABEL="Astra_HD_PLUS" ##replace with reader label
-READER_SERIAL="00 01 02 03" #replace with reader serial number
+
+#list of readers and serials numbers:
+declare -A Readers=( ["Astra_HD_02_smargo"]="AA BB CC DD" ["TVRHD_smargo"]="AA BB CC DD"  ["focus"]="AA BB CC DD" )
+
 
 #DO NOT MODIFY BELOW
-echo "Trying to connect"
-curl --connect-timeout 5 --max-time 10 -s -v --silent  --digest -o  -u $USER:$PW "http://$USER:$PW@$IP:$PORT/entitlements.html?label=$READER_LABEL&hideexpired=0"  2>&1  | grep  "$READER_SERIAL"  >  $FILENAME
-if [ -s $FILENAME ]; then
-echo "Oscam Running and card is fine"
+unset RESTART_NEEDED
+unset WEBIF_REACHABLE
+
+#check if oscam webpage is running
+curl --connect-timeout 5 --max-time 10 -s -v --silent  --digest -o  -u $USER:$PW  -u $USER:$PW "http://$USER:$PW@$IP:$PORT/status.html"  2>&1 | grep "200 OK" >  $FILENAME  
+if [ -s $FILENAME ]; then   
+   echo "OScam Webif is reachable"
+   WEBIF_REACHABLE=true
 else
-logger -s  "Oscam not running or  card is not visible.  Trying to restart"
-/var/bin/ServiceCheck/services/oscam.serv
+   echo "OScam Webif is not reachable"
 fi
+#loop though list of readers
+for READER_LABEL in "${!Readers[@]}"; do 
+    echo "$READER_LABEL => ${Readers[$READER_LABEL]}"; 
+    echo "Trying to connect"
+    curl --connect-timeout 5 --max-time 10 -s -v --silent  --digest -o  -u $USER:$PW "http://$USER:$PW@$IP:$PORT/entitlements.html?label=${READER_LABEL}&hideexpired=0"  2>&1  | grep  "${Readers[${READER_LABEL}]}"  >  $FILENAME
+	if [ -s $FILENAME ]; then
+		echo "Oscam Running and card ${READER_LABEL} is fine"
+    else
+    	logger -s  "Oscam not running or ${READER_LABEL}  card is not visible."
+		RESTART_NEEDED=true
+    fi    
+done
+
+#cleanup
 rm -f $FILENAME
+
+if [ -z "$RESTART_NEEDED" ]
+then
+      echo "No restart is needed, everything works"
+      rm -f $FILE_OSCAM_RESTART_ATTEMPTED
+else
+	if test -f "$FILE_OSCAM_RESTART_ATTEMPTED"; then
+			logger -s  "$FILE_OSCAM_RESTART_ATTEMPTED exists. Oscam restart was attempted but failed"
+			echo "Oscam restart was attempted but failed" | mail -s "oscam error " root@barney.ro
+			#attempt to just restart oscam if webif not reachable
+			if [ -z "$WEBIF_REACHABLE" ]
+			then
+				logger -s "Webif not reachable, try to just restart oscam"
+				systemctl restart oscam
+				
+			else
+				logger -s "Webif reachable, but cards are not ok, do not restart"
+			fi
+				
+	else
+			logger -s "One of the cards were not ok, trying to restart cards and  OSCAM"
+			/var/bin/ServiceCheck/services/oscam.serv
+			#create file that restart was attempted
+			touch $FILE_OSCAM_RESTART_ATTEMPTED
+	fi
+fi
+
 exit 0

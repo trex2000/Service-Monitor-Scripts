@@ -17,10 +17,9 @@ do
   echo "Killing $p..."
   kill  -9  $p
 done
-echo "Resetting Omnikey Reader"
-python omnikeyReset.py OmniKey
-sleep 5
+echo "Resetting  CardReader"
+python /var/bin/ServiceCheck/services/omnikeyReset.py  Future
+sleep 10
 echo "Starting oscam + pcscd"
 systemctl start pcscd
-sleep 5
 systemctl start oscam
